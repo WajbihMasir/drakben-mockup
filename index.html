@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DRAKBEN — Autonomous Penetration Testing Framework</title>
+<meta name="description" content="AI-powered autonomous pentesting framework. Describe the objective in plain language; DRAKBEN handles reconnaissance, exploitation and reporting.">
+<script>document.documentElement.classList.remove('no-js');document.documentElement.classList.add('js');</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Canvas & surfaces */
+    --canvas:#0a0a0c;
+    --lift:#131316;
+    --lift-2:#18181c;
+    --stroke:#2a2a2e;
+    --graphite:#3a3a40;
+    /* Text */
+    --bone:#f8f8f2;
+    --pale:#a8a8b0;
+    --granite:#7d7d85;
+    --chalk:#ffffff;
+    /* Signal (chromatic = data, never decoration) */
+    --red:#ff5555;
+    --green:#50fa7b;
+    --cyan:#8be9fd;
+    --purple:#bd93f9;
+    --yellow:#f1fa8c;
+    /* Type */
+    --sans:'Geist',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    /* Space */
+    --sp-8:8px; --sp-16:16px; --sp-24:24px; --sp-32:32px; --sp-40:40px;
+    --sp-56:56px; --sp-80:80px; --sp-96:96px; --sp-120:120px;
+    /* Radius */
+    --r-sm:3px; --r-card:10px; --r-panel:20px;
+    --max:1200px;
+    --ease:cubic-bezier(0.4,0,0.2,1);
+    --ease-out:cubic-bezier(0.22,1,0.36,1);
+    --dur:0.18s;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--canvas);color:var(--bone);
+    font-family:var(--sans);font-weight:400;
+    font-size:16px;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  ::selection{background:var(--red);color:#0a0a0c}
+  a{color:inherit;text-decoration:none}
+  img,svg{display:block;max-width:100%}
+  .wrap{max-width:var(--max);margin-inline:auto;padding-inline:24px}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  /* ---- Typography polish (jakub/better-typography) ----
+     balance short multi-line headings; pretty avoids orphaned last words. */
+  h1,h2,h3{text-wrap:balance}
+  p,.sub,.sec-note,.card p,.step p,.cta-card p{text-wrap:pretty}
+
+  /* ---- Instrument label: mono = system surface ---- */
+  .label{
+    font-family:var(--mono);font-size:12px;line-height:1;
+    letter-spacing:-0.02em;text-transform:uppercase;color:var(--pale);
+  }
+  .eyebrow{display:inline-flex;align-items:center;gap:8px}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--red);flex:0 0 auto}
+  .dot.g{background:var(--green)} .dot.c{background:var(--cyan)}
+  .pulse{box-shadow:0 0 0 0 rgba(255,85,85,.6);animation:pulse 2.4s var(--ease) infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,85,85,.5)}70%{box-shadow:0 0 0 7px rgba(255,85,85,0)}100%{box-shadow:0 0 0 0 rgba(255,85,85,0)}}
+
+  /* ---- Focus: visible everywhere (a11y) ---- */
+  :focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:2px}
+
+  /* ---- Buttons ---- */
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:var(--sans);font-size:14px;font-weight:400;
+    padding:12px 18px;border-radius:var(--r-sm);border:1px solid transparent;
+    cursor:pointer;transition:background var(--dur) var(--ease),color var(--dur) var(--ease),border-color var(--dur) var(--ease);
+    white-space:nowrap;
+  }
+  .btn-primary{background:var(--red);color:#120607;border-color:var(--red)}
+  .btn-primary:hover{background:#ff6e6e;border-color:#ff6e6e}
+  .btn-dark{background:var(--lift);color:var(--bone);border-color:var(--stroke)}
+  .btn-dark:hover{background:var(--lift-2);border-color:var(--graphite)}
+  .btn-ghost{background:transparent;color:var(--bone);border-color:var(--stroke)}
+  .btn-ghost:hover{border-color:var(--bone)}
+  .btn .arw{transition:transform var(--dur) var(--ease)}
+  .btn:hover .arw{transform:translateX(3px)}
+
+  /* ---- Nav ---- */
+  header.nav{
+    position:sticky;top:0;z-index:50;
+    background:color-mix(in srgb,var(--canvas) 88%,transparent);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--stroke);
+  }
+  .nav-in{display:flex;align-items:center;gap:32px;height:64px}
+  .brand{font-family:var(--mono);font-size:14px;letter-spacing:0.04em;text-transform:uppercase;color:var(--bone)}
+  .brand b{color:var(--red);font-weight:500}
+  .nav-links{display:flex;gap:28px;margin-left:8px}
+  .nav-links a{font-size:14px;color:var(--pale);transition:color var(--dur) var(--ease)}
+  .nav-links a:hover{color:var(--bone)}
+  .nav-cta{margin-left:auto;display:flex;align-items:center;gap:16px}
+  .nav-cta .btn{padding:9px 14px}
+
+  /* ---- Hero ---- */
+  .hero{padding-top:var(--sp-96);padding-bottom:var(--sp-80)}
+  .hero .eyebrow{margin-bottom:28px}
+  h1{
+    font-size:clamp(40px,7vw,72px);line-height:1;font-weight:400;
+    letter-spacing:-0.04em;max-width:16ch;
+  }
+  h1 .hl{color:var(--red)}
+  .sub{margin-top:24px;max-width:60ch;color:var(--pale);font-size:16px}
+  .hero-actions{margin-top:36px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  .hero-meta{margin-top:20px;display:flex;gap:20px;flex-wrap:wrap}
+  .hero-meta span{font-family:var(--mono);font-size:12px;color:var(--granite)}
+
+  /* ---- Terminal / scan frame (the work is the hero) ---- */
+  .frame{
+    margin-top:var(--sp-56);border:1px solid var(--stroke);border-radius:var(--r-card);
+    background:#0d0d0f;overflow:hidden;
+  }
+  .frame-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--stroke);background:var(--lift)}
+  .tl{width:11px;height:11px;border-radius:50%}
+  .tl.r{background:var(--red)} .tl.y{background:var(--yellow)} .tl.g{background:var(--green)}
+  .frame-title{margin-left:10px;font-family:var(--mono);font-size:12px;color:var(--pale);letter-spacing:-0.02em}
+  .frame-bar .live{margin-left:auto;display:flex;align-items:center;gap:7px}
+  .term{padding:22px 20px;font-family:var(--mono);font-size:13px;line-height:1.85;overflow-x:auto}
+  .term .ln{white-space:pre;color:var(--pale)}
+  .term .prompt{color:var(--green)}
+  .term .cmd{color:var(--bone)}
+  .term .ok{color:var(--green)}
+  .term .warn{color:var(--yellow)}
+  .term .bad{color:var(--red)}
+  .term .info{color:var(--cyan)}
+  .term .dim{color:var(--granite)}
+  .term .cursor{display:inline-block;width:8px;height:15px;background:var(--bone);vertical-align:-2px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---- Section shell ---- */
+  section{padding-block:var(--sp-96)}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:40px}
+  h2{font-size:clamp(28px,4vw,44px);line-height:1.1;font-weight:400;letter-spacing:-0.031em;max-width:22ch}
+  .sec-note{color:var(--granite);font-size:14px;max-width:44ch}
+
+  /* ---- Trust / runs-with strip ---- */
+  .strip{border-block:1px solid var(--stroke);padding-block:40px}
+  .strip .label{margin-bottom:24px;display:block}
+  .logos{display:flex;flex-wrap:wrap;gap:12px 14px}
+  .chip{
+    font-family:var(--mono);font-size:12px;color:var(--pale);
+    border:1px solid var(--stroke);border-radius:var(--r-sm);
+    padding:8px 12px;transition:border-color var(--dur) var(--ease),color var(--dur) var(--ease);
+  }
+  .chip:hover{border-color:var(--graphite);color:var(--bone)}
+
+  /* ---- Stats — accordion morph (T8) ----
+     Progressive enhancement: without JS every panel is open and readable;
+     .stats--ready (set by JS) collapses all but the active row. */
+  .stats{border:1px solid var(--stroke);border-radius:var(--r-card);overflow:hidden}
+  .stat{border-bottom:1px solid var(--stroke);transition:background var(--dur) var(--ease)}
+  .stat:last-child{border-bottom:0}
+  .stat:hover{background:var(--lift)}
+  .stat-head{margin:0;font-size:inherit;font-weight:inherit}
+  .stat-btn{
+    width:100%;display:flex;align-items:center;gap:20px;
+    padding:20px 24px;background:transparent;border:0;cursor:pointer;
+    text-align:left;color:var(--granite);font-family:var(--sans);
+    transition:color .42s ease-in-out;
+  }
+  .stat.is-active .stat-btn{color:var(--bone)}
+  .stat-figure{
+    font-size:2.25rem;line-height:1;letter-spacing:-1.12px;
+    min-width:5rem;flex:0 0 auto;transition:font-size .42s ease-in-out;
+  }
+  .stat.is-active .stat-figure{font-size:3.5rem}
+  .stat-label{font-family:var(--mono);font-size:12px;line-height:1;text-transform:uppercase;letter-spacing:-.02em}
+  .stat-arrow{
+    margin-left:auto;flex:0 0 auto;width:36px;height:36px;border-radius:50%;
+    border:1px solid var(--stroke);display:grid;place-items:center;color:var(--pale);
+    transition:transform .42s var(--ease-out),background .42s var(--ease-out),
+               border-color .42s var(--ease-out),color .42s var(--ease-out);
+  }
+  .stats:not(.stats--ready) .stat-arrow{display:none}
+  .stat.is-active .stat-arrow{transform:rotate(180deg);background:var(--red);border-color:var(--red);color:#120607}
+  .stat-panel{display:grid;grid-template-rows:1fr}
+  .stats--ready .stat-panel{grid-template-rows:0fr;transition:grid-template-rows .42s var(--ease-out)}
+  .stats--ready .stat.is-active .stat-panel{grid-template-rows:1fr}
+  .stat-panel-in{overflow:hidden}
+  .stat-desc{padding:0 24px 24px;color:var(--pale);font-size:14px;line-height:1.6;max-width:64ch}
+  .stat .spark{margin-top:16px;height:40px;width:100%;max-width:320px}
+
+  /* ---- Feature cards ---- */
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{
+    border:1px solid var(--stroke);border-radius:var(--r-card);
+    padding:24px;background:transparent;
+    transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease);
+  }
+  .card:hover{border-color:var(--graphite);background:var(--lift)}
+  .card .ico{width:34px;height:34px;border:1px solid var(--stroke);border-radius:var(--r-sm);display:grid;place-items:center;margin-bottom:18px}
+  .card h3{font-size:18px;font-weight:500;letter-spacing:-0.01em;margin-bottom:10px}
+  .card p{color:var(--pale);font-size:14px;line-height:1.6}
+  .card .label{display:block;margin-bottom:16px}
+  .card .more{margin-top:18px;display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;color:var(--bone);border-bottom:1px solid transparent;transition:border-color var(--dur) var(--ease)}
+  .card .more:hover{border-color:var(--bone)}
+
+  /* ---- Pipeline / how it works ---- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--stroke);border-radius:var(--r-card);overflow:hidden}
+  .step{padding:32px 28px;border-right:1px solid var(--stroke);position:relative}
+  .step:last-child{border-right:0}
+  .step .n{font-family:var(--mono);font-size:12px;color:var(--granite);margin-bottom:20px}
+  .step h3{font-size:22px;font-weight:400;letter-spacing:-0.02em;margin-bottom:12px}
+  .step p{color:var(--pale);font-size:14px}
+  .step .tools{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px}
+  .step .tools span{font-family:var(--mono);font-size:11px;color:var(--cyan);border:1px solid var(--stroke);border-radius:var(--r-sm);padding:4px 8px}
+
+  /* ---- Marquee (integration strip) ---- */
+  .marquee{
+    border-block:1px solid var(--stroke);overflow:hidden;padding-block:20px;
+    -webkit-mask-image:linear-gradient(90deg,#0000,#000 6%,#000 94%,#0000);
+    mask-image:linear-gradient(90deg,#0000,#000 6%,#000 94%,#0000);
+  }
+  .marquee-track{display:flex;gap:40px;width:max-content;animation:scroll 40s linear infinite}
+  .marquee:hover .marquee-track{animation-play-state:paused}
+  .marquee-track span{font-family:var(--mono);font-size:13px;color:var(--granite);white-space:nowrap;display:inline-flex;align-items:center;gap:40px}
+  .marquee-track span::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--graphite)}
+  @keyframes scroll{to{transform:translateX(-50%)}}
+
+  /* ---- CTA: the light card = the figure on dark ground ---- */
+  .cta-card{
+    background:var(--bone);color:#101014;border-radius:var(--r-card);
+    padding:48px;max-width:640px;
+  }
+  .cta-card .eyebrow{margin-bottom:20px}
+  .cta-card .eyebrow .label{color:#55555c}
+  .cta-card h2{color:#101014;max-width:18ch}
+  .cta-card p{color:#4a4a52;margin-top:16px;font-size:15px}
+  .cta-card .row{margin-top:28px;display:flex;gap:12px;flex-wrap:wrap}
+  .cta-card .btn-light{background:#101014;color:var(--bone)}
+  .cta-card .btn-light:hover{background:#26262c}
+  .cta-card .btn-outline{background:transparent;color:#101014;border-color:#c9c9cf}
+  .cta-card .btn-outline:hover{border-color:#101014}
+  .cta-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+
+  /* ---- Footer ---- */
+  footer{border-top:1px solid var(--stroke);padding-block:56px;margin-top:var(--sp-96)}
+  .foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:32px}
+  .foot-grid .label{margin-bottom:16px;display:block}
+  .foot-grid ul{list-style:none;display:grid;gap:10px}
+  .foot-grid a{color:var(--pale);font-size:14px;transition:color var(--dur) var(--ease)}
+  .foot-grid a:hover{color:var(--bone)}
+  .foot-bottom{margin-top:48px;padding-top:24px;border-top:1px solid var(--stroke);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .foot-bottom span{font-family:var(--mono);font-size:12px;color:var(--granite)}
+
+  /* ============================================================
+     MOTION SYSTEM  (adopted patterns: RankMySEO → DRAKBEN tokens)
+     All animation is gated behind prefers-reduced-motion + the
+     user "pause animations" toggle (.motion-paused on <html>).
+     ============================================================ */
+
+  /* ---- Motion gate (T1) ---- */
+  .motion-paused *, .motion-paused *::before, .motion-paused *::after{
+    animation-play-state:paused!important;
+  }
+
+  /* ---- Skip link (T5) ---- */
+  .skip-link{
+    position:absolute;left:16px;top:-64px;z-index:200;
+    background:var(--red);color:#120607;font-size:14px;
+    padding:10px 16px;border-radius:var(--r-sm);
+    transition:top .18s var(--ease);
+  }
+  .skip-link:focus{top:12px}
+
+  /* ---- Promo bar (T10) ---- */
+  .promo{background:var(--lift);border-bottom:1px solid var(--stroke)}
+  .promo-in{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    min-height:38px;padding-block:8px;flex-wrap:wrap;text-align:center;
+  }
+  .promo .label{color:var(--pale)}
+  .promo b{color:var(--bone);font-weight:500}
+  .promo .desc{color:var(--granite);font-size:13px;font-family:var(--sans)}
+  .promo .arw{color:var(--red);font-size:14px;line-height:1}
+  @media (max-width:640px){ .promo .desc{display:none} }
+
+  /* ---- Scan film (T2): terminal becomes a 3-scene ~10s loop ---- */
+  .film-stage{
+    position:relative;padding:22px 20px;
+    font-family:var(--mono);font-size:13px;line-height:1.85;
+    min-height:140px;overflow:hidden;
+  }
+  .film-scene{
+    position:absolute;inset:22px 20px;
+    opacity:0;animation:film-scene 10s var(--ease-out) infinite;
+  }
+  .film-scene.fs1{animation-delay:0s}
+  .film-scene.fs2{animation-delay:3.333s}
+  .film-scene.fs3{animation-delay:6.666s}
+  @keyframes film-scene{
+    0%{opacity:0;transform:translateY(8px) scale(.985)}
+    3%{opacity:1;transform:none}
+    30%{opacity:1;transform:none}
+    33%{opacity:0;transform:translateY(-6px) scale(1.01)}
+    100%{opacity:0}
+  }
+  .film-line{white-space:pre;color:var(--pale)}
+  /* scene 1 — typed command */
+  .film-type{
+    display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom;
+    max-width:0;animation:film-type 10s steps(52) infinite;
+  }
+  @keyframes film-type{
+    0%,1%{max-width:0}
+    13%,30%{max-width:52ch}
+    33%,100%{max-width:0}
+  }
+  .film-caret{
+    display:inline-block;width:8px;height:15px;background:var(--bone);
+    vertical-align:-2px;animation:film-caret 1s steps(1) infinite;
+  }
+  @keyframes film-caret{50%{opacity:0}}
+  /* scene 2 — result rows appear in sequence */
+  .film-row{opacity:0;animation:film-row 10s var(--ease-out) infinite}
+  .film-row:nth-child(1){animation-delay:0s}
+  .film-row:nth-child(2){animation-delay:.18s}
+  .film-row:nth-child(3){animation-delay:.36s}
+  .film-row:nth-child(4){animation-delay:.54s}
+  @keyframes film-row{
+    0%,33%{opacity:0;transform:translateY(6px)}
+    38%,60%{opacity:1;transform:none}
+    64%,100%{opacity:0}
+  }
+  /* scene 3 — risk meter fills, report lands */
+  .film-bar{height:6px;background:var(--stroke);border-radius:3px;overflow:hidden;margin-top:12px;max-width:280px}
+  .film-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--yellow),var(--red));
+    animation:film-bar 10s var(--ease-out) infinite}
+  @keyframes film-bar{
+    0%,68%{width:0}
+    78%,96%{width:72%}
+    100%{width:0}
+  }
+  .film-note{opacity:0;animation:film-row 10s var(--ease-out) infinite;animation-delay:.5s}
+
+  /* ---- Reveal on scroll (T7) — progressive enhancement.
+     Content stays visible by default; only browsers that support
+     scroll-driven animations hide + animate it, so nothing can ever
+     be permanently invisible (robust against blocked JS/observers). ---- */
+  @supports (animation-timeline: view()){
+    .reveal{
+      animation:reveal-up linear both;
+      animation-timeline:view();
+      animation-range:entry 8% cover 32%;
+    }
+    @keyframes reveal-up{
+      from{opacity:0;transform:translateY(24px)}
+      to{opacity:1;transform:none}
+    }
+  }
+
+  /* ---- Scroll-driven sparkline (T2) — pure CSS, no JS ---- */
+  @supports (animation-timeline: view()){
+    .spark polyline{
+      stroke-dasharray:1;stroke-dashoffset:1;
+      animation:draw linear both;
+      animation-timeline:view();
+      animation-range:entry 25% cover 45%;
+    }
+    @keyframes draw{to{stroke-dashoffset:0}}
+  }
+
+  /* ---- Mobile drawer (T4) ---- */
+  .nav-burger{
+    display:none;background:transparent;border:1px solid var(--stroke);
+    border-radius:var(--r-sm);color:var(--bone);width:38px;height:38px;
+    cursor:pointer;align-items:center;justify-content:center;
+    transition:border-color var(--dur) var(--ease);
+  }
+  .nav-burger:hover{border-color:var(--graphite)}
+  .drawer-overlay{
+    position:fixed;inset:0;z-index:60;
+    background:color-mix(in srgb,var(--canvas) 72%,transparent);
+    backdrop-filter:blur(8px);
+    opacity:0;visibility:hidden;
+    transition:opacity .25s var(--ease),visibility .25s var(--ease);
+  }
+  .drawer-overlay.open{opacity:1;visibility:visible}
+  .drawer{
+    position:fixed;top:0;right:0;bottom:0;z-index:61;
+    width:min(20.5rem,88vw);background:var(--lift);
+    border-left:1px solid var(--stroke);
+    transform:translateX(100%);transition:transform .3s var(--ease-out);
+    display:flex;flex-direction:column;padding:20px;overflow-y:auto;
+  }
+  .drawer.open{transform:none}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+  .drawer-nav{display:flex;flex-direction:column;gap:4px}
+  .drawer-nav a{
+    padding:12px 10px;border-radius:var(--r-sm);color:var(--pale);font-size:15px;
+    transition:background var(--dur) var(--ease),color var(--dur) var(--ease);
+  }
+  .drawer-nav a:hover{background:var(--lift-2);color:var(--bone)}
+  .drawer .btn{margin-top:auto}
+  .icon-btn{
+    background:transparent;border:1px solid var(--stroke);border-radius:var(--r-sm);
+    color:var(--pale);width:38px;height:38px;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;
+    transition:border-color var(--dur) var(--ease),color var(--dur) var(--ease);
+  }
+  .icon-btn:hover{border-color:var(--graphite);color:var(--bone)}
+  .icon-btn[aria-pressed="true"]{border-color:var(--red);color:var(--bone)}
+
+  /* ---- Responsive ---- */
+  @media (max-width:900px){
+    .nav-links{display:none}
+    .nav-burger{display:inline-flex}
+    .nav-cta .btn-ghost{display:none}
+    .stat-btn{padding:18px 20px;gap:16px}
+    .stat-figure{min-width:4.5rem}
+    .grid-3{grid-template-columns:1fr}
+    .steps{grid-template-columns:1fr}
+    .step{border-right:0;border-bottom:1px solid var(--stroke)}
+    .step:last-child{border-bottom:0}
+    .cta-grid{grid-template-columns:1fr;gap:32px}
+    .foot-grid{grid-template-columns:1fr 1fr}
+  }
+  @media (max-width:560px){
+    .stat-btn{padding:16px 18px}
+    .stat-figure{font-size:1.9rem;min-width:3.6rem}
+    .stat.is-active .stat-figure{font-size:2.6rem}
+    .cta-card{padding:32px}
+    section{padding-block:var(--sp-56)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+    /* film fallback: show the first scene as a static, still-informative frame */
+    .film-scene{opacity:0}
+    .film-scene.fs1{opacity:1;position:relative;inset:auto}
+    .film-stage{min-height:0}
+    .film-type{max-width:none}
+    .film-row,.film-note{opacity:1}
+    .film-bar i{width:72%}
+    .reveal{animation:none!important;opacity:1!important;transform:none!important}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#top">Skip to content</a>
+
+<!-- PROMO BAR (T10) -->
+<div class="promo">
+  <div class="wrap promo-in">
+    <span class="label">New · v2.5.0</span>
+    <span class="desc">Stanford Memory System, 11 intelligence modules, full Turkish support</span>
+    <span class="arw" aria-hidden="true">↗</span>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top" aria-label="DRAKBEN home">DRAK<b>BEN</b></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#capabilities">Capabilities</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#modules">Modules</a>
+      <a href="#docs">Docs</a>
+    </nav>
+    <div class="nav-cta">
+      <button class="icon-btn" id="motion-toggle" type="button" aria-pressed="false"
+              aria-label="Pause animations" title="Pause animations">
+        <span id="motion-icon" aria-hidden="true">❚❚</span>
+      </button>
+      <a class="btn btn-ghost" href="#docs">GitHub</a>
+      <a class="btn btn-primary" href="#install">Install</a>
+      <button class="nav-burger" id="burger" type="button"
+              aria-label="Open menu" aria-expanded="false" aria-controls="drawer">
+        <span aria-hidden="true">☰</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- MOBILE DRAWER (T4) -->
+<div class="drawer-overlay" id="drawer-overlay" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Menu" inert>
+  <div class="drawer-head">
+    <span class="brand">DRAK<b>BEN</b></span>
+    <button class="icon-btn" id="drawer-close" type="button" aria-label="Close menu"><span aria-hidden="true">✕</span></button>
+  </div>
+  <nav class="drawer-nav" aria-label="Mobile">
+    <a href="#capabilities">Capabilities</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#modules">Modules</a>
+    <a href="#docs">Docs</a>
+    <a href="#docs">GitHub</a>
+  </nav>
+  <a class="btn btn-primary" href="#install">Install DRAKBEN</a>
+</aside>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero wrap" aria-labelledby="h1">
+    <span class="eyebrow"><span class="dot pulse" aria-hidden="true"></span><span class="label">Autonomous pentest framework · v2.5.0</span></span>
+    <h1 id="h1">Let AI handle the <span class="hl">methodology</span>. You focus on the results.</h1>
+    <p class="sub">DRAKBEN is an AI-powered autonomous penetration testing framework built in Python. Describe the objective in plain language and it runs the full assessment — reconnaissance, exploitation, and reporting — with minimal human intervention.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#install">Get started <span class="arw" aria-hidden="true">→</span></a>
+      <a class="btn btn-ghost" href="#pipeline">See the pipeline</a>
+    </div>
+    <div class="hero-meta">
+      <span>MIT licensed</span><span>·</span>
+      <span>Python 3.13+</span><span>·</span>
+      <span>1609 tests passing</span><span>·</span>
+      <span>TR / EN</span>
+    </div>
+
+    <!-- The work is the hero: a 3-scene scan film (loops ~10s) -->
+    <figure class="frame" aria-label="Example DRAKBEN session">
+      <div class="frame-bar">
+        <span class="tl r" aria-hidden="true"></span><span class="tl y" aria-hidden="true"></span><span class="tl g" aria-hidden="true"></span>
+        <span class="frame-title">drakben — interactive shell</span>
+        <span class="live"><span class="dot g" aria-hidden="true"></span><span class="label">live</span></span>
+      </div>
+      <div class="film-stage" role="img" aria-label="Looping demo: you ask DRAKBEN to scan a target; it finds four open ports and three web issues (risk high, CVE-2020-1938); then it writes report.html and report.json.">
+        <!-- scene 1 — the request, typed -->
+        <div class="film-scene fs1" aria-hidden="true">
+          <div class="film-line"><span class="prompt">you ›</span> <span class="cmd film-type">scan the target and check for web vulnerabilities</span><span class="film-caret"></span></div>
+          <div class="film-line dim" style="margin-top:14px">┌─ <span class="info">agent</span> <span class="dim">planning reconnaissance…</span></div>
+          <div class="film-line dim">└─ <span class="dim">selecting tools · nmap · nikto · sqlmap</span></div>
+        </div>
+        <!-- scene 2 — reconnaissance + findings -->
+        <div class="film-scene fs2" aria-hidden="true">
+          <div class="film-line film-row"><span class="ok">✔</span> nmap -p- -T4 10.10.14.22        <span class="dim">→ 4 open · 22 80 443 8080</span></div>
+          <div class="film-line film-row"><span class="ok">✔</span> service fingerprint            <span class="dim">→ nginx 1.24 · Tomcat 9.0.82</span></div>
+          <div class="film-line film-row"><span class="warn">▲</span> /manager/html exposed          <span class="dim">severity</span> <span class="bad">high</span>   <span class="dim">cve</span> CVE-2020-1938</div>
+          <div class="film-line film-row"><span class="warn">▲</span> SQLi candidate on /login      <span class="dim">vector</span> <span class="bad">error-based</span></div>
+        </div>
+        <!-- scene 3 — decision + report -->
+        <div class="film-scene fs3" aria-hidden="true">
+          <div class="film-line"><span class="dim">┌─</span> <span class="info">decision</span> <span class="dim">exploit-predictor · confidence 0.82 → proceed</span></div>
+          <div class="film-line film-row"><span class="ok">✔</span> report written               <span class="dim">report.html · report.json · 3 issues · risk</span> <span class="bad">high</span></div>
+          <div class="film-bar"><i></i></div>
+          <div class="film-line film-note dim">risk score 7.4 / 10 — remediation guidance attached</div>
+        </div>
+      </div>
+    </figure>
+  </section>
+
+  <!-- TRUST / RUNS-WITH STRIP -->
+  <section class="strip" aria-label="Integrated tooling">
+    <div class="wrap">
+      <span class="label">Runs with the tooling you already trust</span>
+      <div class="logos">
+        <span class="chip">nmap</span><span class="chip">nikto</span><span class="chip">sqlmap</span>
+        <span class="chip">metasploit</span><span class="chip">nuclei</span><span class="chip">bloodhound</span>
+        <span class="chip">whois / dns</span><span class="chip">docker sandbox</span><span class="chip">chromadb</span>
+        <span class="chip">openrouter</span><span class="chip">ollama</span><span class="chip">fastapi</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS — accordion morph (T8) -->
+  <section class="wrap reveal" aria-label="By the numbers">
+    <h2 class="sr-only">DRAKBEN by the numbers</h2>
+    <div class="stats" id="stats">
+      <div class="stat" data-stat>
+        <h3 class="stat-head">
+          <button class="stat-btn" type="button" id="stat-h1" aria-expanded="false" aria-controls="stat-p1">
+            <span class="stat-figure">104</span>
+            <span class="stat-label">Core modules</span>
+            <span class="stat-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </button>
+        </h3>
+        <div class="stat-panel" id="stat-p1" role="region" aria-labelledby="stat-h1">
+          <div class="stat-panel-in">
+            <p class="stat-desc">The engine: agent brain, ReAct reasoning loop, Stanford-style memory stream, tool registry and the intelligence pipeline — 104 modules across the core tree.</p>
+            <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,34 15,30 30,31 45,22 60,24 75,14 100,8" fill="none" stroke="#ff5555" stroke-width="1.5"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="stat" data-stat>
+        <h3 class="stat-head">
+          <button class="stat-btn" type="button" id="stat-h2" aria-expanded="false" aria-controls="stat-p2">
+            <span class="stat-figure">38</span>
+            <span class="stat-label">Attack modules</span>
+            <span class="stat-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </button>
+        </h3>
+        <div class="stat-panel" id="stat-p2" role="region" aria-labelledby="stat-h2">
+          <div class="stat-panel-in">
+            <p class="stat-desc">Reconnaissance, web and network exploitation, Active Directory, command-and-control, evasion and payload generation — each grouped by the pentest phase it belongs to.</p>
+            <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,36 20,32 40,28 55,26 70,18 85,16 100,6" fill="none" stroke="#50fa7b" stroke-width="1.5"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="stat" data-stat>
+        <h3 class="stat-head">
+          <button class="stat-btn" type="button" id="stat-h3" aria-expanded="false" aria-controls="stat-p3">
+            <span class="stat-figure">1609</span>
+            <span class="stat-label">Tests passing</span>
+            <span class="stat-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </button>
+        </h3>
+        <div class="stat-panel" id="stat-p3" role="region" aria-labelledby="stat-h3">
+          <div class="stat-panel-in">
+            <p class="stat-desc">The suite runs in CI on every push, alongside Ruff (35 rule groups), MyPy in strict mode and Bandit — with SonarCloud reporting zero open issues.</p>
+            <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,30 25,30 45,20 65,20 80,12 100,12" fill="none" stroke="#8be9fd" stroke-width="1.5"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="stat" data-stat>
+        <h3 class="stat-head">
+          <button class="stat-btn" type="button" id="stat-h4" aria-expanded="false" aria-controls="stat-p4">
+            <span class="stat-figure">34</span>
+            <span class="stat-label">Registered tools</span>
+            <span class="stat-arrow" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+          </button>
+        </h3>
+        <div class="stat-panel" id="stat-p4" role="region" aria-labelledby="stat-h4">
+          <div class="stat-panel-in">
+            <p class="stat-desc">nmap, nikto, sqlmap, metasploit, nuclei and more — each registered with a type, an allowed phase and a risk level, so the agent can select and reason about them.</p>
+            <svg class="spark" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,32 20,26 40,27 60,18 80,16 100,10" fill="none" stroke="#bd93f9" stroke-width="1.5"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPABILITIES -->
+  <section id="capabilities" class="wrap reveal" aria-labelledby="cap-h">
+    <div class="sec-head">
+      <div>
+        <span class="label" style="display:block;margin-bottom:16px">Capabilities</span>
+        <h2 id="cap-h">An instrument, not a wrapper around tools.</h2>
+      </div>
+      <p class="sec-note">Every module reports structured output the agent can reason over — not raw console text it has to guess from.</p>
+    </div>
+    <div class="grid-3">
+      <article class="card">
+        <div class="ico" aria-hidden="true"><span class="dot c"></span></div>
+        <span class="label">01 · reasoning</span>
+        <h3>ReAct reasoning loop</h3>
+        <p>Thought → Action → Observation cycles with iteration tracking, a structured output parser, and a context compressor that keeps long engagements inside the token budget.</p>
+      </article>
+      <article class="card">
+        <div class="ico" aria-hidden="true"><span class="dot g"></span></div>
+        <span class="label">02 · memory</span>
+        <h3>Persistent learning</h3>
+        <p>A Stanford-style graph memory plus a ChromaDB vector store. It remembers what worked across sessions, penalises failing tools, and reuses proven strategies.</p>
+      </article>
+      <article class="card">
+        <div class="ico" aria-hidden="true"><span class="dot"></span></div>
+        <span class="label">03 · recovery</span>
+        <h3>Self-healing execution</h3>
+        <p>Failure-context analysis and automatic replanning recover from failed steps without a human restart, and an anti-hallucination protocol validates model output against runtime reality.</p>
+      </article>
+      <article class="card">
+        <div class="ico" aria-hidden="true"><span class="dot c"></span></div>
+        <span class="label">04 · evasion</span>
+        <h3>Adaptive WAF bypass</h3>
+        <p>Fingerprints Cloudflare, AWS WAF, ModSecurity, Imperva and more, then mutates payloads with encoding chains and pattern learning that persists between runs.</p>
+      </article>
+      <article class="card">
+        <div class="ico" aria-hidden="true"><span class="dot g"></span></div>
+        <span class="label">05 · multi-llm</span>
+        <h3>Provider-agnostic</h3>
+        <p>OpenRouter (100+ models), local Ollama for private engagements, OpenAI, or a custom endpoint. A model router picks per task by complexity and budget.</p>
+      </article>
+      <article class="card">
+        <div class="ico" aria-hidden="true"><span class="dot"></span></div>
+        <span class="label">06 · reporting</span>
+        <h3>Executive-ready output</h3>
+        <p>HTML, Markdown, JSON and PDF reports with CVSS-based risk scoring, evidence, proof-of-concept, and actionable remediation guidance.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- PIPELINE -->
+  <section id="pipeline" class="wrap reveal" aria-labelledby="pipe-h">
+    <div class="sec-head">
+      <div>
+        <span class="label" style="display:block;margin-bottom:16px">Pipeline</span>
+        <h2 id="pipe-h">Three phases, one continuous run.</h2>
+      </div>
+      <p class="sec-note">Each phase feeds the next: findings from reconnaissance decide which exploits are worth attempting.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="n">01</div>
+        <h3>Reconnaissance</h3>
+        <p>Port scanning, service enumeration, subdomain discovery, DNS and WHOIS intelligence, and web technology fingerprinting — passive first, then active.</p>
+        <div class="tools"><span>nmap</span><span>whois</span><span>dns</span><span>ct-logs</span></div>
+      </div>
+      <div class="step">
+        <div class="n">02</div>
+        <h3>Exploitation</h3>
+        <p>Web and network exploitation driven by the recon result: injection, authentication bypass, file inclusion and upload, with CVE matching and CVSS scoring.</p>
+        <div class="tools"><span>sqlmap</span><span>nikto</span><span>metasploit</span><span>nvd</span></div>
+      </div>
+      <div class="step">
+        <div class="n">03</div>
+        <h3>Reporting</h3>
+        <p>A consolidated, risk-scored report with an executive summary, evidence, and remediation guidance — in the format your stakeholders actually read.</p>
+        <div class="tools"><span>html</span><span>markdown</span><span>json</span><span>pdf</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>RECONNAISSANCE</span><span>EXPLOITATION</span><span>POST-EXPLOIT</span><span>LATERAL MOVEMENT</span><span>EVASION</span><span>REPORTING</span>
+      <span>RECONNAISSANCE</span><span>EXPLOITATION</span><span>POST-EXPLOIT</span><span>LATERAL MOVEMENT</span><span>EVASION</span><span>REPORTING</span>
+    </div>
+  </div>
+
+  <!-- MODULES -->
+  <section id="modules" class="wrap reveal" aria-labelledby="mod-h">
+    <div class="sec-head">
+      <div>
+        <span class="label" style="display:block;margin-bottom:16px">Attack modules</span>
+        <h2 id="mod-h">From the first port to the domain admin.</h2>
+      </div>
+      <p class="sec-note">Coverage spans web, network, Active Directory, and distributed operations.</p>
+    </div>
+    <div class="grid-3">
+      <article class="card">
+        <span class="label">web</span>
+        <h3>Web application testing</h3>
+        <p>SQL / NoSQL injection, XSS, CSRF, SSTI, LFI / RFI / SSRF, file upload bypass (8 techniques), JWT manipulation, and HTTP header grading.</p>
+      </article>
+      <article class="card">
+        <span class="label">active directory</span>
+        <h3>AD attack paths</h3>
+        <p>Domain enumeration, Kerberoasting, AS-REP roasting, pass-the-hash, DCSync, lateral movement, and BloodHound-style pathfinding to Domain Admin.</p>
+      </article>
+      <article class="card">
+        <span class="label">distributed</span>
+        <h3>Hive Mind operations</h3>
+        <p>Network topology discovery, credential harvesting, multi-hop attack-path analysis, and automatic pivoting through managed pivot points.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- CTA: light card = the figure on dark ground -->
+  <section class="wrap reveal" aria-labelledby="cta-h">
+    <div class="cta-grid">
+      <div class="cta-card">
+        <span class="eyebrow"><span class="dot" aria-hidden="true"></span><span class="label">Start in one command</span></span>
+        <h2 id="cta-h">Point it at a target. Read the report.</h2>
+        <p>Run it in Docker for a disposable Kali environment, or install it natively. Works offline with a rule-based fallback; add an LLM key to unlock the autonomous features.</p>
+        <div class="row">
+          <a class="btn btn-light" href="#install">Install DRAKBEN <span class="arw" aria-hidden="true">→</span></a>
+          <a class="btn btn-outline" href="#docs">Read the docs</a>
+        </div>
+      </div>
+      <div id="install" class="frame" aria-label="Install commands">
+        <div class="frame-bar">
+          <span class="tl r" aria-hidden="true"></span><span class="tl y" aria-hidden="true"></span><span class="tl g" aria-hidden="true"></span>
+          <span class="frame-title">quickstart</span>
+        </div>
+        <div class="term">
+<span class="ln"><span class="dim"># Docker (recommended)</span></span>
+<span class="ln"><span class="prompt">$</span> <span class="cmd">git clone https://github.com/ahmetdrak/drakben.git</span></span>
+<span class="ln"><span class="prompt">$</span> <span class="cmd">cd drakben && docker-compose up -d</span></span>
+<span class="ln"><span class="prompt">$</span> <span class="cmd">docker exec -it drakben python3 drakben.py</span></span>
+<span class="ln"></span>
+<span class="ln"><span class="dim"># Native (Kali / Debian)</span></span>
+<span class="ln"><span class="prompt">$</span> <span class="cmd">python3 -m venv .venv && source .venv/bin/activate</span></span>
+<span class="ln"><span class="prompt">$</span> <span class="cmd">pip install -r requirements.txt</span></span>
+<span class="ln"><span class="prompt">$</span> <span class="cmd">python3 drakben.py</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer id="docs">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="#top" aria-label="DRAKBEN home">DRAK<b>BEN</b></a>
+        <p style="color:var(--pale);font-size:14px;margin-top:14px;max-width:34ch">Autonomous AI penetration testing framework. Self-healing, self-evolving, multi-LLM powered.</p>
+      </div>
+      <div>
+        <span class="label">Product</span>
+        <ul><li><a href="#capabilities">Capabilities</a></li><li><a href="#pipeline">Pipeline</a></li><li><a href="#modules">Modules</a></li><li><a href="#install">Install</a></li></ul>
+      </div>
+      <div>
+        <span class="label">Docs</span>
+        <ul><li><a href="#docs">README</a></li><li><a href="#docs">API reference</a></li><li><a href="#docs">Architecture</a></li><li><a href="#docs">Changelog</a></li></ul>
+      </div>
+      <div>
+        <span class="label">Project</span>
+        <ul><li><a href="#docs">GitHub</a></li><li><a href="#docs">Contributing</a></li><li><a href="#docs">Security</a></li><li><a href="#docs">License</a></li></ul>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 DRAKBEN · MIT licensed</span>
+      <span>Built for authorized security testing only.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var root = document.documentElement;
+
+  /* ---- Pause animations toggle (T3) ---- */
+  var toggle = document.getElementById('motion-toggle');
+  var mIcon  = document.getElementById('motion-icon');
+  if (toggle) {
+    toggle.addEventListener('click', function(){
+      var paused = root.classList.toggle('motion-paused');
+      toggle.setAttribute('aria-pressed', paused ? 'true' : 'false');
+      toggle.setAttribute('aria-label', paused ? 'Play animations' : 'Pause animations');
+      toggle.title = paused ? 'Play animations' : 'Pause animations';
+      if (mIcon) mIcon.textContent = paused ? '▶' : '❚❚';
+    });
+  }
+
+  /* ---- Mobile drawer (T4) ---- */
+  var burger  = document.getElementById('burger');
+  var drawer  = document.getElementById('drawer');
+  var overlay = document.getElementById('drawer-overlay');
+  var close   = document.getElementById('drawer-close');
+  var lastFocus = null;
+
+  function openDrawer(){
+    lastFocus = document.activeElement;
+    overlay.hidden = false;
+    /* Add classes synchronously: the drawer is already laid out (transform,
+       not display:none), so the transition runs without a rAF hop — which is
+       throttled or skipped in background/headless tabs. */
+    overlay.classList.add('open');
+    drawer.classList.add('open');
+    drawer.removeAttribute('inert');
+    burger.setAttribute('aria-expanded', 'true');
+    close.focus();
+    document.addEventListener('keydown', onKey);
+  }
+  function closeDrawer(){
+    drawer.classList.remove('open'); overlay.classList.remove('open');
+    drawer.setAttribute('inert', '');
+    burger.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('keydown', onKey);
+    setTimeout(function(){ overlay.hidden = true; }, 260);
+    if (lastFocus) lastFocus.focus();
+  }
+  function onKey(e){
+    if (e.key === 'Escape') { closeDrawer(); return; }
+    if (e.key === 'Tab') {
+      var f = drawer.querySelectorAll('a[href], button:not([disabled])');
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  }
+  if (burger && drawer) {
+    burger.addEventListener('click', openDrawer);
+    close.addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', closeDrawer);
+    drawer.querySelectorAll('a[href]').forEach(function(a){
+      a.addEventListener('click', function(){ closeDrawer(); });
+    });
+  }
+
+  /* ---- Stats accordion morph (T8) ---- */
+  var statsRoot = document.getElementById('stats');
+  if (statsRoot) {
+    var items = Array.prototype.slice.call(statsRoot.querySelectorAll('[data-stat]'));
+    function activate(item){
+      items.forEach(function(it){
+        var on = (it === item);
+        it.classList.toggle('is-active', on);
+        var b = it.querySelector('.stat-btn');
+        if (b) b.setAttribute('aria-expanded', on ? 'true' : 'false');
+      });
+    }
+    items.forEach(function(it){
+      var b = it.querySelector('.stat-btn');
+      if (!b) return;
+      b.addEventListener('click', function(){
+        if (it.classList.contains('is-active')) {
+          it.classList.remove('is-active');
+          b.setAttribute('aria-expanded', 'false');
+        } else {
+          activate(it);
+        }
+      });
+    });
+    activate(items[0]);                 /* first row open by default */
+    statsRoot.classList.add('stats--ready'); /* enable collapsed mode (JS-only) */
+  }
+})();
+</script>
+
+</body>
+</html>
